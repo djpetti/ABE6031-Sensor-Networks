@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#include <Arduino.h>
+
 // Implements the wire protocol for serial communication.
 
 /// Types of commands from the coordinator that we understand.
@@ -39,5 +41,11 @@ void WriteLightIntensity(float intensity);
  * @return The type of the message.
  */
 InputCommandType HandleIncomingMessage();
+
+/**
+ * @brief Writes a new log message.
+ * @param format The message format.
+ */
+void Log(const __FlashStringHelper* format, ...);
 
 #endif  // SERIAL_COMMS_H_

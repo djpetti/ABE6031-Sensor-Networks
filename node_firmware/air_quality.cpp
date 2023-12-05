@@ -1,6 +1,7 @@
 #include <EEPROM.h>
 
 #include "air_quality.hpp"
+#include "serial_comms.hpp"
 
 // Starting address in the EEPROM of the VOC baseline value.
 #define VOC_BASELINE_ADDR 0x00
@@ -44,7 +45,13 @@ void WriteEeprom16(uint32_t address, uint16_t value) {
  */ 
 
 bool AirQuality::Begin() {
-  return sgp_.begin();
+  if (!sgp_.begin()) {
+    Log(F("Failed to initialize SGP-30."));
+    return false;
+  }
+
+  SetBaseline();
+  return true;
 }
 
 bool AirQuality::ReadAirQuality(float humidity, uint16_t *voc, uint16_t *co2) {
@@ -53,6 +60,7 @@ bool AirQuality::ReadAirQuality(float humidity, uint16_t *voc, uint16_t *co2) {
   if (!is_calibrated_) {
     if (kCalibrationElapsedTime >= INITIAL_CALIBRATION_TIME) {
       // We have waited long enough. We can save the calibration and proceed.
+      Log(F("Saving initial baseline."));
       SaveBaseline();
     }
   } else if (kCalibrationElapsedTime >= BASELINE_SAVE_PERIOD) {
@@ -65,6 +73,7 @@ bool AirQuality::ReadAirQuality(float humidity, uint16_t *voc, uint16_t *co2) {
 
   if (!sgp_.IAQmeasure()) {
     // Failed to measure anything.
+    Log(F("Failed to read from the SGP-30."));
     return false;
   }
 
@@ -79,12 +88,14 @@ bool AirQuality::SetBaseline() {
   const bool kBaselineValid = EEPROM.read(BASELINES_GOOD_ADDR);
   if (!kBaselineValid) {
     // It has never been calibrated.
+    Log(F("No valid baseline in EEPROM, not setting."));
     return false;
   }
 
   const uint16_t kVocBaseline = ReadEeprom16(VOC_BASELINE_ADDR);
   const uint16_t kCo2Baseline = ReadEeprom16(CO2_BASELINE_ADDR);
 
+  Log(F("Setting new baseline: %u, %u"), kCo2Baseline, kVocBaseline);
   sgp_.setIAQBaseline(kCo2Baseline, kVocBaseline);
   is_calibrated_ = true;
 
@@ -97,6 +108,7 @@ void AirQuality::SaveBaseline() {
   sgp_.getIAQBaseline(&co2_baseline, &voc_baseline);
 
   // Save it to EEPROM.
+  Log(F("Saving baseline: %u, %u"), co2_baseline, voc_baseline);
   WriteEeprom16(VOC_BASELINE_ADDR, voc_baseline);
   WriteEeprom16(CO2_BASELINE_ADDR, co2_baseline);
   EEPROM.update(BASELINES_GOOD_ADDR, 1);
@@ -105,6 +117,8 @@ void AirQuality::SaveBaseline() {
 }
 
 void AirQuality::StartCalibration() {
+  Log(F("Starting calibration."));
+
   // Mark the stored calibration as not valid in case it restarts before
   // finishing the calibration.
   EEPROM.update(BASELINES_GOOD_ADDR, 0);

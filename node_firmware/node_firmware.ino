@@ -47,7 +47,8 @@ bool readTemperatureHumidity(float *temp, float *humidity) {
   *temp = dht.readTemperature();
   *humidity = dht.readHumidity();
 
-  if (isnan(*temp) || !isnan(*humidity)) {
+  if (isnan(*temp) || isnan(*humidity)) {
+    Log(F("Failed to read from DHT-11."));
     return false;
   }
 
