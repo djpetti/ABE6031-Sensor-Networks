@@ -1,15 +1,23 @@
 #include "serial_comms.hpp"
 
+#include <string.h>
+
 #include <ArduinoJson.h>
 
 // The unique ID of this node.
 #define NODE_ID 1
+// Maximum length of a message we can receive.
+#define MAX_INPUT_MESSAGE_LENGTH 40
 
 namespace {
+
+// Buffer used to store input messages.
+char input_message_buffer[MAX_INPUT_MESSAGE_LENGTH];
 
 StaticJsonDocument<58> temp_document;
 StaticJsonDocument<84> air_quality_document;
 StaticJsonDocument<58> light_document;
+StaticJsonDocument<58> input_document;
 
 }  // namespace
 
@@ -44,4 +52,27 @@ void WriteLightIntensity(float intensity) {
 
   serializeJson(light_document, Serial);
   Serial.println();
+}
+
+InputCommandType HandleIncomingMessage() {
+  // Read the message from the serial.
+  char current_char;
+  uint16_t write_index = 0;
+  do {
+    current_char = Serial.read();
+    input_message_buffer[write_index++] = current_char;
+  } while (current_char != "\n" && write_index < MAX_INPUT_MESSAGE_LENGTH);
+
+  // Parse the JSON.
+  const DeserializationError kError = deserializeJson(input_document, input_message_buffer);
+  if (kError) {
+    // Failed to parse.
+    return InputCommandType::UNKNOWN;
+  }
+
+  // Check the command type.
+  if (!strcmp(input_document[F("type")], "start_calibration")) {
+    return InputCommandType::START_CALIBRATION;
+  }
+  return InputCommandType::UNKNOWN;
 }

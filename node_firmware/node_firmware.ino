@@ -17,9 +17,6 @@
 DHT dht(DHTPIN, DHTTYPE);
 AirQuality co2_sensor;
 
-// How much time to leave between baseline calibrations for the air quality sensor, in seconds.
-const uint8_t kBaselinePeriod = 30;
-
 void setup() {
   Serial.begin(115200);
   while (!Serial) { delay(10); } // Wait for serial console to open!
@@ -77,4 +74,13 @@ void loop() {
   const uint16_t kRawLightValue = analogRead(LIGHT_SENSOR_PIN);
   const float kLightIntensity = 1.0 - (static_cast<float>(kRawLightValue) / 1024.0);
   WriteLightIntensity(kLightIntensity);
+
+  // Check for commands.
+  if (Serial.peek() != -1) {
+    // We have something new.
+    if (HandleIncomingMessage() == InputCommandType::START_CALIBRATION) {
+      // Start a new calibration cycle.
+      co2_sensor.StartCalibration();
+    }
+  }
 }
