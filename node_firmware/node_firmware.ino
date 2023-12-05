@@ -4,11 +4,15 @@
 #include "DHT.h"
 
 #include "air_quality.hpp"
+#include "serial_comms.hpp"
 
 // Pin that the DHT-11 sensor is connected to.
 #define DHTPIN 7
 // We are using a DHT-11.
 #define DHTTYPE DHT11
+
+// Pin that the light sensor is connected to.
+#define LIGHT_SENSOR_PIN 0
 
 DHT dht(DHTPIN, DHTTYPE);
 AirQuality co2_sensor;
@@ -62,11 +66,15 @@ void loop() {
   // Read temperature/humidity data.
   float temp, humidity;
   readTemperatureHumidity(&temp, &humidity);
+  WriteTempHumidity(temp, humidity);
 
   // Read air quality data.
   uint16_t voc, co2;
   co2_sensor.ReadAirQuality(humidity, &voc, &co2);
-  Serial.println(voc);
-  Serial.println(co2);
-  Serial.println(co2_sensor.IsCalibrated());
+  WriteAirQuality(co2, voc, co2_sensor.IsCalibrated());
+
+  // Read light data.
+  const uint16_t kRawLightValue = analogRead(LIGHT_SENSOR_PIN);
+  const float kLightIntensity = 1.0 - (static_cast<float>(kRawLightValue) / 1024.0);
+  WriteLightIntensity(kLightIntensity);
 }
