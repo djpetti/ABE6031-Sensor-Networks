@@ -6,7 +6,7 @@
 #include <ArduinoJson.h>
 
 // The unique ID of this node.
-#define NODE_ID 1
+#define NODE_ID 3
 // Maximum length of a message we can receive.
 #define MAX_INPUT_MESSAGE_LENGTH 40
 // Maximum length for a log message.
@@ -64,7 +64,7 @@ InputCommandType HandleIncomingMessage() {
   do {
     current_char = Serial.read();
     input_message_buffer[write_index++] = current_char;
-  } while (current_char != "\n" && write_index < MAX_INPUT_MESSAGE_LENGTH);
+  } while (current_char != '\n' && write_index < MAX_INPUT_MESSAGE_LENGTH);
 
   // Parse the JSON.
   StaticJsonDocument<58> input_document;

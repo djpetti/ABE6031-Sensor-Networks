@@ -14,11 +14,14 @@
 // Pin that the light sensor is connected to.
 #define LIGHT_SENSOR_PIN 0
 
+// Interval in MS that we read sensor data.
+#define UPDATE_PERIOD_MS 10000
+
 DHT dht(DHTPIN, DHTTYPE);
 AirQuality co2_sensor;
 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(57600);
   while (!Serial) { delay(10); } // Wait for serial console to open!
 
   dht.begin();
@@ -59,7 +62,7 @@ bool readTemperatureHumidity(float *temp, float *humidity) {
 }
 
 void loop() {
-  delay(1000);
+  delay(UPDATE_PERIOD_MS);
 
   // Read temperature/humidity data.
   float temp, humidity;

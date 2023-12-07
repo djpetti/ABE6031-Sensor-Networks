@@ -10,12 +10,12 @@
 // Starting address in the EEPROM of the value indicating whether the baselines are valid.
 #define BASELINES_GOOD_ADDR 0x03
 
-// How long we have to wait, in seconds, to calibrate the baseline.
-#define INITIAL_CALIBRATION_TIME 12 * 60 * 60
-// Interval at which we save the baseline to EEPROM, in seconds.
-#define BASELINE_SAVE_PERIOD 60 * 60
-
 namespace {
+
+// How long we have to wait, in seconds, to calibrate the baseline.
+const uint32_t kInitialCalibrationTime = 43200;  // 12 hours
+// Interval at which we save the baseline to EEPROM, in seconds.
+const uint32_t kBaselineSavePeriod = 3600;  // 1 hour
 
 /**
  * @brief Reads 16 bits from the EEPROM.
@@ -56,14 +56,15 @@ bool AirQuality::Begin() {
 
 bool AirQuality::ReadAirQuality(float humidity, uint16_t *voc, uint16_t *co2) {
   // Check the calibration status.
-  const uint32_t kCalibrationElapsedTime = millis() / 1000 - calibration_time_;
+  const uint32_t kCalibrationElapsedTime = (millis() - calibration_time_) / 1000;
+  Log(F("Time since calibration: %u"), kCalibrationElapsedTime); 
   if (!is_calibrated_) {
-    if (kCalibrationElapsedTime >= INITIAL_CALIBRATION_TIME) {
+    if (kCalibrationElapsedTime >= kInitialCalibrationTime) {
       // We have waited long enough. We can save the calibration and proceed.
       Log(F("Saving initial baseline."));
       SaveBaseline();
     }
-  } else if (kCalibrationElapsedTime >= BASELINE_SAVE_PERIOD) {
+  } else if (kCalibrationElapsedTime >= kBaselineSavePeriod) {
     // We have to update the baseline again.
     SaveBaseline();
   }
@@ -114,6 +115,7 @@ void AirQuality::SaveBaseline() {
   EEPROM.update(BASELINES_GOOD_ADDR, 1);
 
   calibration_time_ = millis();
+  is_calibrated_ = true;
 }
 
 void AirQuality::StartCalibration() {
